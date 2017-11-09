@@ -7,45 +7,52 @@ namespace AsyncIO.Net.Libuv
     public class Timer : Handle
     {
         private Loop _loop;
-        private Action _callback;
         private ulong _interval;
-        private ulong _delay;
 
         public ulong Interval
         {
             get => uv_timer_get_repeat(this.handle);
-            set => uv_timer_set_repeat(this.handle, value);
+            set
+            {
+                uv_timer_set_repeat(this.handle, value);
+                this._interval = value;
+            }
         }
 
-        public Timer(Loop loop)
+        public Action Schedule { get; set; }
+        public ulong Delay { get; set; }
+
+        public Timer(Loop loop) : this(loop, null) {}
+
+        public Timer(Loop loop, Action schedule)
             : base(Thread.CurrentThread.ManagedThreadId, uv_handle_size(HandleType.UV_TIMER), null)
         {
             this._loop = loop;
             uv_timer_init(this._loop.DangerousGetHandle(), this.handle);
 
-            this._callback = null;
+            this.Schedule = schedule;
             this._interval = 0;
-            this._delay = 0;
+            this.Delay = 0;
         }
 
-        public void Schedule(Action callback) => this.Schedule(callback, 0, 0);
+        public void Set(Action schedule) => this.Set(schedule, 0, 0);
 
-        public void Schedule(Action callback, ulong interval) => this.Schedule(callback, interval, 0);
+        public void Set(Action schedule, ulong interval) => this.Set(schedule, interval, 0);
 
-        public void Schedule(Action callback, ulong interval, ulong delay)
+        public void Set(Action schedule, ulong interval, ulong delay)
         {
-            this._callback = callback;
+            this.Schedule = schedule;
             this._interval = interval;
-            this._delay = delay;
+            this.Delay = delay;
         }
 
         public void Start()
         {
-            if (this._callback == null)
+            if (this.Schedule == null)
             {
-                throw new ArgumentNullException(nameof(this._callback));
+                throw new ArgumentNullException(nameof(this.Schedule));
             }
-            uv_timer_start(this.handle, handle => this._callback(), this._delay, this._interval);
+            uv_timer_start(this.handle, handle => this.Schedule(), this.Delay, this._interval);
         }
 
         public void Stop() => uv_timer_stop(this.handle);
