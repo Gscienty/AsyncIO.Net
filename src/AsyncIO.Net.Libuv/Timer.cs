@@ -25,7 +25,7 @@ namespace AsyncIO.Net.Libuv
         public Timer(Loop loop) : this(loop, null) {}
 
         public Timer(Loop loop, Action schedule)
-            : base(Thread.CurrentThread.ManagedThreadId, uv_handle_size(HandleType.UV_TIMER), null)
+            : base(Thread.CurrentThread.ManagedThreadId, uv_handle_size(HandleType.Timer), null)
         {
             this._loop = loop;
             uv_timer_init(this._loop.DangerousGetHandle(), this.handle);

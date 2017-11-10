@@ -12,10 +12,12 @@ namespace AsyncIO.Net.Libuv
         public Check(Loop loop) : this(loop, null) { }
 
         public Check(Loop loop, Action schedule)
-            : base(Thread.CurrentThread.ManagedThreadId, uv_handle_size(HandleType.UV_CHECK), null)
+            : base(Thread.CurrentThread.ManagedThreadId, uv_handle_size(HandleType.Check), null)
         {
             this._loop = loop;
             this.Schedule = schedule;
+            
+            uv_check_init(loop.DangerousGetHandle(), this.handle);
         }
 
         public void Start()

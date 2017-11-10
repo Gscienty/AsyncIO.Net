@@ -12,7 +12,7 @@ namespace AsyncIO.Net.Libuv
         public Prepare(Loop loop) : this(loop, null) { }
 
         public Prepare(Loop loop, Action schedule)
-            : base(Thread.CurrentThread.ManagedThreadId, uv_handle_size(HandleType.UV_PREPARE), null)
+            : base(Thread.CurrentThread.ManagedThreadId, uv_handle_size(HandleType.Prepare), null)
         {
             this._loop = loop;
             this.Schedule = schedule;

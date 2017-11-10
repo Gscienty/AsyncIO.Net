@@ -7,25 +7,25 @@ namespace AsyncIO.Net.Libuv
 {
     public enum HandleType : int 
     {
-        UV_UNKNOWN_HANDLE = 0,
-        UV_ASYNC,
-        UV_CHECK,
-        UV_FS_EVENT,
-        UV_FS_POLL,
-        UV_HANDLE,
-        UV_IDLE,
-        UV_NAMED_PIPE,
-        UV_POLL,
-        UV_PREPARE,
-        UV_PROCESS,
-        UV_STREAM,
-        UV_TCP,
-        UV_TIMER,
-        UV_TTY,
-        UV_UDP,
-        UV_SIGNAL,
-        UV_FILE,
-        UV_HANDLE_TYPE_MAX
+        UnknowHandle = 0,
+        Async,
+        Check,
+        FileSystemEvent,
+        FileSystemPoll,
+        Handle,
+        Idle,
+        NamedPipe,
+        Poll,
+        Prepare,
+        Process,
+        Stream,
+        TCP,
+        Timer,
+        TTY,
+        UDP,
+        Signal,
+        File,
+        HandleTypeMax
     }
 
     public abstract class Handle : SafeHandle
@@ -49,8 +49,6 @@ namespace AsyncIO.Net.Libuv
             this.SetHandle(Marshal.AllocCoTaskMem(size));
             *(IntPtr*)this.handle = GCHandle.ToIntPtr(GCHandle.Alloc(this, handleType));
         }
-
-
 
         protected override bool ReleaseHandle()
         {
