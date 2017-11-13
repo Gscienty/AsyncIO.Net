@@ -6,10 +6,15 @@ namespace AsyncIO.Net.Libuv
 {
     public enum LoopRunMode : int { Default = 0, Once, NoWait }
 
-    public class Loop : Handle
+    public class Loop : SafeHandle, IDisposable
     {
-        public Loop() : base(Thread.CurrentThread.ManagedThreadId, uv_loop_size(), null)
+
+        public override bool IsInvalid => uv_loop_close(this.handle) != 0;
+        unsafe public Loop() : base(IntPtr.Zero, true)
         {
+            this.SetHandle(Marshal.AllocCoTaskMem(uv_loop_size()));
+            *(IntPtr*)this.handle = GCHandle.ToIntPtr(GCHandle.Alloc(this, GCHandleType.Weak));
+
             uv_loop_init(this.handle);
         }
 
@@ -24,6 +29,21 @@ namespace AsyncIO.Net.Libuv
             }
 
             return true;
+        }
+        
+        unsafe protected void DestoryMemory() => this.DestoryMemory(*(IntPtr*)this.handle);
+
+        unsafe protected void DestoryMemory(IntPtr gcHandlePtr)
+        {
+            if (gcHandlePtr != IntPtr.Zero)
+            {
+                var gcHandle = GCHandle.FromIntPtr(gcHandlePtr);
+                gcHandle.Free();
+            }
+
+            Marshal.FreeCoTaskMem(this.handle);
+
+            this.SetHandle(IntPtr.Zero);
         }
 
         
