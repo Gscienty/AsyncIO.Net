@@ -35,15 +35,17 @@ namespace AsyncIO.Net.Libuv
             this.Delay = 0;
         }
 
-        public void Set(Action schedule) => this.Set(schedule, 0, 0);
+        public Timer Set(Action schedule) => this.Set(schedule, 0, 0);
 
-        public void Set(Action schedule, ulong interval) => this.Set(schedule, interval, 0);
+        public Timer Set(Action schedule, ulong interval) => this.Set(schedule, interval, 0);
 
-        public void Set(Action schedule, ulong interval, ulong delay)
+        public Timer Set(Action schedule, ulong interval, ulong delay)
         {
             this.Schedule = schedule;
             this._interval = interval;
             this.Delay = delay;
+
+            return this;
         }
 
         public void Start()

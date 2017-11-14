@@ -118,6 +118,14 @@ namespace AsyncIO.Net.Libuv
 
             this.SetHandle(IntPtr.Zero);
         }
+        
+
+        unsafe protected THandle FromIntPtr<THandle>(IntPtr handle) where THandle : Handle
+        {
+            GCHandle gcHandle = GCHandle.FromIntPtr(*(IntPtr*)handle);
+
+            return (THandle) gcHandle.Target;
+        }
     
         [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
         internal delegate void uv_alloc_cb(IntPtr handle, uint suggestedSize, ref UvBuffer buffer);
