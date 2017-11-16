@@ -1,97 +1,84 @@
 using System;
 using System.Threading;
-using System.Threading.Tasks;
 using System.Runtime.InteropServices;
-using AsyncIO.Net.Libuv.Structs;
 
 namespace AsyncIO.Net.Libuv
 {
-    public enum HandleType : int 
+    public abstract class Handle : SafeHandle
     {
-        UnknowHandle = 0,
-        Async,
-        Check,
-        FileSystemEvent,
-        FileSystemPoll,
-        Handle,
-        Idle,
-        NamedPipe,
-        Poll,
-        Prepare,
-        Process,
-        Stream,
-        TCP,
-        Timer,
-        TTY,
-        UDP,
-        Signal,
-        File,
-        HandleTypeMax
-    }
+        [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+        internal delegate void uv_close_cb(IntPtr handle);
 
-    public abstract class Handle : SafeHandle, IDisposable
-    {
-        private int _threadId;
+        protected readonly ILibuvLogger _logger;
+        protected readonly GCHandleType _handleType;
         private Action<Action<IntPtr>, IntPtr> _queueCloseHandle;
+        private static readonly uv_close_cb _freeMemory = handle => Handle.FreeMemory(handle);
 
         public override bool IsInvalid => this.handle == IntPtr.Zero;
-        public new bool IsClosed => this.IsInvalid;
-        public bool IsClosing => this.IsInvalid ? false : uv_is_closing(this.handle) != 0;
-        public virtual bool IsActive => uv_is_active(this.handle) != 0;
-        public bool HasReference => uv_has_ref(this.handle) != 0;
-        public int SendBufferSize
+        public int ThreadId { get; protected set; }
+        public IntPtr Handler => this.handle;
+
+        protected Handle(ILibuvLogger logger, GCHandleType handleType = GCHandleType.Weak) : base(IntPtr.Zero, true)
         {
-            set => uv_send_buffer_size(this.handle, ref value);
-            get
-            {
-                int val = 0;
-                return uv_send_buffer_size(this.handle, ref val);
-            }
+            this._handleType = handleType;
+            this._logger = logger;
         }
 
-        public int ReceiveBufferSize
-        {
-            set => uv_recv_buffer_size(this.handle, ref value);
-            get
-            {
-                int val = 0;
-                return uv_recv_buffer_size(this.handle, ref val);
-            }
-        }
+        public void Reference() => NativeMethods.uv_ref(this);
+        public void Unreference() => NativeMethods.uv_unref(this);
 
-        unsafe protected Handle(
-            int threadId,
-            int size,
-            Action<Action<IntPtr>, IntPtr> queueCloseHandle,
-            GCHandleType handleType = GCHandleType.Weak) : base(IntPtr.Zero, true)
+        unsafe protected void AllocateMemory(int threadId, int size, Action<Action<IntPtr>, IntPtr> queueCloseHandle)
         {
-            this._threadId = threadId;
+            this.AllocateMemory(threadId, size);
+
             this._queueCloseHandle = queueCloseHandle;
-
-            this.SetHandle(Marshal.AllocCoTaskMem(size));
-            *(IntPtr*)this.handle = GCHandle.ToIntPtr(GCHandle.Alloc(this, handleType));
         }
 
-        public void Reference() => uv_ref(this.handle);
-        public void UnReference() => uv_unref(this.handle);
+        unsafe protected void AllocateMemory(int threadId, int size)
+        {
+            this.ThreadId = threadId;
 
+            this.handle = Marshal.AllocCoTaskMem(size);
+            *(IntPtr*)this.handle = GCHandle.ToIntPtr(GCHandle.Alloc(this, this._handleType));
+        }
+
+        unsafe protected static void FreeMemory(IntPtr memory)
+        {
+            IntPtr gcHandlePointer = *(IntPtr*)memory;
+            Handle.FreeMemory(memory, gcHandlePointer);
+        }
+
+        unsafe protected static void FreeMemory(IntPtr memory, IntPtr gcHandlePointer)
+        {
+            if (gcHandlePointer != IntPtr.Zero)
+            {
+                GCHandle gcHandle = GCHandle.FromIntPtr(gcHandlePointer);
+                gcHandle.Free();
+            }
+            Marshal.FreeCoTaskMem(memory);
+        }
+
+        unsafe public static T FromIntPtr<T>(IntPtr handle) where T : Handle
+        {
+            GCHandle gcHandle = GCHandle.FromIntPtr(*(IntPtr*)handle);
+            return gcHandle.Target as T;
+        }
 
         protected override bool ReleaseHandle()
         {
             var memory = this.handle;
-
             if (memory != IntPtr.Zero)
             {
-                this.SetHandle(IntPtr.Zero);
+                this.handle = IntPtr.Zero;
 
-                if (Thread.CurrentThread.ManagedThreadId == this._threadId)
+                if (Thread.CurrentThread.ManagedThreadId == this.ThreadId)
                 {
-                    uv_close(memory, handle => DestoryMemory());
+                    NativeMethods.uv_close(memory, Handle._freeMemory);
                 }
                 else if (this._queueCloseHandle != null)
                 {
                     this._queueCloseHandle(
-                        truthMemory => uv_close(truthMemory, handle => DestoryMemory()),
+                        otherThreadsMemory => NativeMethods.uv_close(otherThreadsMemory, Handle._freeMemory), 
                         memory
                     );
                 }
@@ -104,53 +91,23 @@ namespace AsyncIO.Net.Libuv
             return true;
         }
 
-        unsafe protected void DestoryMemory() => this.DestoryMemory(*(IntPtr*)this.handle);
-
-        unsafe protected void DestoryMemory(IntPtr gcHandlePtr)
+        protected static class NativeMethods
         {
-            if (gcHandlePtr != IntPtr.Zero)
-            {
-                var gcHandle = GCHandle.FromIntPtr(gcHandlePtr);
-                gcHandle.Free();
-            }
 
-            Marshal.FreeCoTaskMem(this.handle);
+            [DllImport("libuv", CallingConvention = CallingConvention.Cdecl)]
+            internal static extern void uv_ref(Handle handle);
 
-            this.SetHandle(IntPtr.Zero);
+            [DllImport("libuv", CallingConvention = CallingConvention.Cdecl)]
+            internal static extern void uv_unref(Handle handle);
+
+            [DllImport("libuv", CallingConvention = CallingConvention.Cdecl)]
+            internal static extern int uv_fileno(Handle handle, ref IntPtr socket);
+
+            [DllImport("libuv", CallingConvention = CallingConvention.Cdecl)]
+            internal static extern void uv_close(IntPtr handle, Handle.uv_close_cb close_cb);
+
+            [DllImport("libuv", CallingConvention = CallingConvention.Cdecl)]
+            public static extern int uv_handle_size(HandleType handleType);
         }
-        
-
-        unsafe protected THandle FromIntPtr<THandle>(IntPtr handle) where THandle : Handle
-        {
-            GCHandle gcHandle = GCHandle.FromIntPtr(*(IntPtr*)handle);
-
-            return (THandle) gcHandle.Target;
-        }
-    
-        [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
-        internal delegate void uv_alloc_cb(IntPtr handle, uint suggestedSize, ref UvBuffer buffer);
-        [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
-        internal delegate void uv_close_cb(IntPtr handle);
-
-        [DllImport("libuv", CallingConvention = CallingConvention.Cdecl)]
-        internal static extern int uv_is_closing(IntPtr handle);
-
-        [DllImport("libuv", CallingConvention = CallingConvention.Cdecl)]
-        internal static extern void uv_close(IntPtr handle, uv_close_cb callback);
-
-        [DllImport("libuv", CallingConvention = CallingConvention.Cdecl)]
-        internal static extern int uv_handle_size(HandleType type);
-        [DllImport("libuv", CallingConvention = CallingConvention.Cdecl)]
-        internal static extern int uv_is_active(IntPtr handle);
-        [DllImport("libuv", CallingConvention = CallingConvention.Cdecl)]
-        internal static extern void uv_ref(IntPtr handle);
-        [DllImport("libuv", CallingConvention = CallingConvention.Cdecl)]
-        internal static extern void uv_unref(IntPtr handle);
-        [DllImport("libuv", CallingConvention = CallingConvention.Cdecl)]
-        internal static extern int uv_has_ref(IntPtr handle);
-        [DllImport("libuv", CallingConvention = CallingConvention.Cdecl)]
-        internal static extern int uv_send_buffer_size(IntPtr handle, ref int value);
-        [DllImport("libuv", CallingConvention = CallingConvention.Cdecl)]
-        internal static extern int uv_recv_buffer_size(IntPtr handle, ref int value);
     }
 }

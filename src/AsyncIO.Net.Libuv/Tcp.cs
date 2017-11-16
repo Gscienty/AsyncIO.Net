@@ -7,99 +7,46 @@ namespace AsyncIO.Net.Libuv
 {
     public class Tcp : Stream
     {
-        private Loop _loop;
-        private bool _noDelay;
-        private bool _simultaneousAccepts;
-        private bool IsKeepAlive { get; set; }
-        private bool SimultaneousAccepts {
-            get => this._simultaneousAccepts;
-            set
-            {
-                this._simultaneousAccepts = value;
-                uv_tcp_simultaneous_accepts(this.handle, this._simultaneousAccepts ? 1 : 0);
-            }
-        }
-        public bool NoDelay
+        public Tcp(
+            ILibuvLogger logger,
+            EventLooper looper,
+            Action<Action<IntPtr>, IntPtr> queueCloseHandle) : base(logger)
         {
-            get => this._noDelay;
-            set
-            {
-                this._noDelay = value;
-                uv_tcp_nodelay(this.handle, this._noDelay ? 1 : 0);
-            }
+            this.Initialize(looper, queueCloseHandle);
         }
 
-        public IPEndPoint LocalIPEndPoint
+        private void Initialize(EventLooper looper, Action<Action<IntPtr>, IntPtr> queueCloseHandle)
         {
-            get
-            {
-                NativeSocketAddress address;
-                int length = Marshal.SizeOf<NativeSocketAddress>();
-                uv_tcp_getsockname(this.handle, out address, ref length);
+            this.AllocateMemory(
+                looper.ThreadId,
+                Handle.NativeMethods.uv_handle_size(HandleType.TCP),
+                queueCloseHandle
+            );
 
-                return address.IPEndPoint;
-            }
+            NativeMethods.uv_tcp_init(looper, this);
         }
 
-        public IPEndPoint PeerIPEndPoint
-        {
-            get
-            {
-                NativeSocketAddress address;
-                int length = Marshal.SizeOf<NativeSocketAddress>();
-                uv_tcp_getpeername(this.handle, out address, ref length);
-
-                return address.IPEndPoint;
-            }
-        }
-
-        public Tcp(Loop loop) : base(loop)
-        {
-            this._loop = loop;
-            uv_tcp_init(this._loop.DangerousGetHandle(), this.handle);
-            this._noDelay = false;
-            this.IsKeepAlive = false;
-            this.SimultaneousAccepts = false;
-        }
-
-        public Tcp KeepAlive(uint delay)
-        {
-            uv_tcp_keepalive(this.handle, this.IsKeepAlive ? 1 : 0, delay);
-            return this;
-        }
-
-        public Tcp Bind(string ip, int port, uint flags)
+        public Tcp Bind(string ip, int port, int flags)
         {
             NativeSocketAddress address = NativeSocketAddress.GetIPv4(ip, port);
-            uv_tcp_bind(this.handle, ref address, flags);
-
+            NativeMethods.uv_tcp_bind(this, ref address, flags);
             return this;
         }
 
-        public Tcp Open(IntPtr fileDescriptor)
+        public Tcp Accept(EventLooper looper, Action<Action<IntPtr>, IntPtr> queueCloseHandle)
         {
-            uv_tcp_open(this.handle, fileDescriptor);
+            Tcp client = new Tcp(this._logger, looper, queueCloseHandle);
+            this.Accept(client);
 
-            return this;
+            return client;
         }
 
-        [DllImport("libuv", CallingConvention = CallingConvention.Cdecl)]
-        internal static extern int uv_tcp_init(IntPtr loopHandle, IntPtr tcpHandle);
-        [DllImport("libuv", CallingConvention = CallingConvention.Cdecl)]
-        internal static extern int uv_tcp_init(IntPtr loopHandle, IntPtr tcpHandle, int flags);
-        [DllImport("libuv", CallingConvention = CallingConvention.Cdecl)]
-        internal static extern int uv_tcp_nodelay(IntPtr handle, int enable);
-        [DllImport("libuv", CallingConvention = CallingConvention.Cdecl)]
-        internal static extern int uv_tcp_keepalive(IntPtr handle, int enable, uint delay);
-        [DllImport("libuv", CallingConvention = CallingConvention.Cdecl)]
-        internal static extern int uv_tcp_simultaneous_accepts(IntPtr handle, int enable);
-        [DllImport("libuv", CallingConvention = CallingConvention.Cdecl)]
-        internal static extern int uv_tcp_bind(IntPtr handle, ref NativeSocketAddress address, uint flags);
-        [DllImport("libuv", CallingConvention = CallingConvention.Cdecl)]
-        internal static extern int uv_tcp_getsockname(IntPtr handle, out NativeSocketAddress name, ref int length);
-        [DllImport("libuv", CallingConvention = CallingConvention.Cdecl)]
-        internal static extern int uv_tcp_getpeername(IntPtr handle, out NativeSocketAddress name, ref int length);
-        [DllImport("libuv", CallingConvention = CallingConvention.Cdecl)]
-        internal static extern int uv_tcp_open(IntPtr handle, IntPtr socket);
+        internal static new class NativeMethods
+        {
+            [DllImport("libuv", CallingConvention = CallingConvention.Cdecl)]
+            internal static extern int uv_tcp_init(EventLooper loop, Tcp handle);
+            [DllImport("libuv", CallingConvention = CallingConvention.Cdecl)]
+            public static extern int uv_tcp_bind(Tcp handle, ref NativeSocketAddress addr, int flags);
+        }
     }
 }

@@ -43,7 +43,7 @@ namespace AsyncIO.Net.Libuv.Structs
         public static NativeSocketAddress GetIPv4(string ip, int port)
         {
             NativeSocketAddress address;
-            Stream.uv_ip4_addr(ip, port, out address);
+            Stream.NativeMethods.uv_ip4_addr(ip, port, out address);
 
             return address;
         }
@@ -51,7 +51,7 @@ namespace AsyncIO.Net.Libuv.Structs
         public static NativeSocketAddress GetIPv6(string ip, int port)
         {
             NativeSocketAddress address;
-            Stream.uv_ip6_addr(ip, port, out address);
+            Stream.NativeMethods.uv_ip6_addr(ip, port, out address);
 
             return address;
         }
