@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Threading;
+using System.Threading.Tasks;
 using System.Runtime.InteropServices;
 using AsyncIO.Net.Libuv;
 using AsyncIO.Net.Libuv.Structs;
