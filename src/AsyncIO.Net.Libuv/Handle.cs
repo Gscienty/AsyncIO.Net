@@ -8,6 +8,8 @@ namespace AsyncIO.Net.Libuv
     {
         [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
         internal delegate void uv_close_cb(IntPtr handle);
+        [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+        internal delegate void uv_alloc_cb(IntPtr server, int suggested_size, out Structs.Buffer buf);
 
         protected readonly ILibuvLogger _logger;
         protected readonly GCHandleType _handleType;

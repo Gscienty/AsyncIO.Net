@@ -9,8 +9,6 @@ namespace AsyncIO.Net.Libuv
         [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
         internal delegate void uv_connection_cb(IntPtr server, int status);
         [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
-        internal delegate void uv_alloc_cb(IntPtr server, int suggested_size, out Structs.Buffer buf);
-        [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
         internal delegate void uv_read_cb(IntPtr server, int nread, ref Structs.Buffer buf);
 
         private readonly static uv_connection_cb _connectionCallback = (serverPtr, status) =>
