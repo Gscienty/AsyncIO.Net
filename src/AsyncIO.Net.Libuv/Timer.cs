@@ -23,7 +23,7 @@ namespace AsyncIO.Net.Libuv
             set => NativeMethods.uv_timer_set_repeat(this, value);
         }
 
-        protected Timer(ILibuvLogger logger, EventLooper looper, Action<Action<IntPtr>, IntPtr> queueCloseHandle) : base(logger)
+        public Timer(ILibuvLogger logger, EventLooper looper, Action<Action<IntPtr>, IntPtr> queueCloseHandle) : base(logger)
         {
             this.Initialize(looper, queueCloseHandle);
         }

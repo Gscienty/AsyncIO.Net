@@ -10,6 +10,11 @@ namespace AsyncIO.Net.Libuv
         [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
         internal delegate void uv_udp_recv_cb(IntPtr handle, ref Structs.Buffer buffer, ref NativeSocketAddress address, uint flags);
 
+        private readonly static uv_udp_recv_cb _recvCallback = (IntPtr handle, ref Structs.Buffer buffer, ref NativeSocketAddress address, uint flags) =>
+        {
+            Udp server = Handle.FromIntPtr<Udp>(handle);
+        };
+
         public IPEndPoint SocketName
         {
             get
