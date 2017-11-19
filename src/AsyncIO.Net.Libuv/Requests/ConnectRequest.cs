@@ -32,10 +32,18 @@ namespace AsyncIO.Net.Libuv.Requests
             NativeMethods.uv_tcp_connect(this, client, ref address, ConnectRequest.connectCallback);
         }
 
+        public void NamedPipeConnect(NamedPipe client, string name, Action callback)
+        {
+            this._callback = callback;
+            NativeMethods.uv_pipe_connect(this, client, name, ConnectRequest.connectCallback);
+        }
+
         internal static new class NativeMethods
         {
             [DllImport("libuv", CallingConvention = CallingConvention.Cdecl)]
             internal static extern int uv_tcp_connect(ConnectRequest connectRequest, Tcp client, ref NativeSocketAddress address, uv_connect_cb connectCallback);
+            [DllImport("libuv", CallingConvention = CallingConvention.Cdecl)]
+            internal static extern int uv_pipe_connect(ConnectRequest connectRequest, NamedPipe client, string name, uv_connect_cb connectCallback);
         }
     }
 }

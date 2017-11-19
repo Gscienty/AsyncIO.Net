@@ -26,7 +26,7 @@ namespace AsyncIO.Net.Libuv
         {
             this.AllocateMemory(
                 looper.ThreadId,
-                Handle.NativeMethods.uv_handle_size(HandleType.PREPARE),
+                Handle.NativeMethods.uv_handle_size(HandleType.Prepare),
                 queueCloseHandle
             );
 
