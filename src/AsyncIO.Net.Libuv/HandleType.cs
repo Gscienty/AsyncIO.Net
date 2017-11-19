@@ -1,6 +1,6 @@
 namespace AsyncIO.Net.Libuv
 {
-    public enum HandleType
+    public enum HandleType : int
     {
         Unknown = 0,
         Async,

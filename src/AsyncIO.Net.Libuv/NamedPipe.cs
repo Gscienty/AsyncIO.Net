@@ -5,7 +5,32 @@ namespace AsyncIO.Net.Libuv
 {
     public class NamedPipe : Stream
     {
-        
+        public string SocketName
+        {
+            get
+            {
+                string name = "";
+                int length = 0;
+                NativeMethods.uv_pipe_getsockname(this, ref name, ref length);
+                return name;
+            }
+        }
+
+        public string PeerName
+        {
+            get
+            {
+                string name = "";
+                int length = 0;
+                NativeMethods.uv_pipe_getpeername(this, ref name, ref length);
+
+                return name;
+            }
+        }
+
+        public int PendingCount => NativeMethods.uv_pipe_pending_count(this);
+
+        public HandleType PendingType => (HandleType)NativeMethods.uv_pipe_pending_type(this);
 
         public NamedPipe(ILibuvLogger logger, EventLooper looper, bool ipc, Action<Action<IntPtr>, IntPtr> queueCloseHandle) : base(logger)
         {
@@ -26,6 +51,18 @@ namespace AsyncIO.Net.Libuv
         public NamedPipe Bind(string name)
         {
             NativeMethods.uv_pipe_bind(this, name);
+            return this;
+        }
+
+        public NamedPipe SetInstances(int count)
+        {
+            NativeMethods.uv_pipe_pending_instances(this, count);
+            return this;
+        }
+
+        public NamedPipe Chmod(int flags)
+        {
+            NativeMethods.uv_pipe_chmod(this, flags);
             return this;
         }
 
