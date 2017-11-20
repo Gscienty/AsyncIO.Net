@@ -13,7 +13,7 @@ namespace AsyncIO.Net.Libuv.Requests
         private readonly static uv_udp_send_cb _udpSendCallback = (handle, status) =>
         {
             UdpRequest request = Handle.FromIntPtr<UdpRequest>(handle);
-
+            request.FreeBuffers();
             request._callback();
         };
 

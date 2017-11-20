@@ -14,7 +14,7 @@ namespace AsyncIO.Net.Libuv.Requests
         private static readonly uv_write_cb _writeCallback = (requestPointer, status) => 
         {
             WriteRequest request = Handle.FromIntPtr<WriteRequest>(requestPointer);
-
+            request.FreeBuffers();
             request._callback();
         };
 
