@@ -8,9 +8,12 @@ namespace AsyncIO.Net.Libuv
     {
         public long Now => NativeMethods.uv_now(this);
 
-        public EventLooper(ILibuvLogger logger) : base(logger) { }
+        public EventLooper(ILibuvLogger logger) : base(logger)
+        {
+            this.Initialize();
+        }
 
-        public void Initialize()
+        private void Initialize()
         {
             this.AllocateMemory(Thread.CurrentThread.ManagedThreadId, NativeMethods.uv_loop_size());
 
