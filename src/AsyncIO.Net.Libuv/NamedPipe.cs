@@ -9,10 +9,10 @@ namespace AsyncIO.Net.Libuv
         {
             get
             {
-                string name = "";
-                int length = 0;
-                NativeMethods.uv_pipe_getsockname(this, ref name, ref length);
-                return name;
+                IntPtr name = IntPtr.Zero;
+                int length = 256;
+                NativeMethods.uv_pipe_getsockname(this, out name, ref length);
+                return Marshal.PtrToStringAnsi(name);
             }
         }
 
@@ -20,11 +20,10 @@ namespace AsyncIO.Net.Libuv
         {
             get
             {
-                string name = "";
-                int length = 0;
-                NativeMethods.uv_pipe_getpeername(this, ref name, ref length);
-
-                return name;
+                IntPtr name = IntPtr.Zero;
+                int length = 256;
+                NativeMethods.uv_pipe_getpeername(this, out name, ref length);
+                return Marshal.PtrToStringAnsi(name);
             }
         }
 
@@ -73,9 +72,9 @@ namespace AsyncIO.Net.Libuv
             [DllImport("libuv", CallingConvention = CallingConvention.Cdecl)]
             internal static extern int uv_pipe_bind(NamedPipe handle, string name);
             [DllImport("libuv", CallingConvention = CallingConvention.Cdecl)]
-            internal static extern int uv_pipe_getsockname(NamedPipe handle, ref string buffer, ref int length);
+            internal static extern int uv_pipe_getsockname(NamedPipe handle, out IntPtr buffer, ref int length);
             [DllImport("libuv", CallingConvention = CallingConvention.Cdecl)]
-            internal static extern int uv_pipe_getpeername(NamedPipe handle, ref string buffer, ref int length);
+            internal static extern int uv_pipe_getpeername(NamedPipe handle, out IntPtr buffer, ref int length);
             [DllImport("libuv", CallingConvention = CallingConvention.Cdecl)]
             internal static extern void uv_pipe_pending_instances(NamedPipe handle, int count);
             [DllImport("libuv", CallingConvention = CallingConvention.Cdecl)]
