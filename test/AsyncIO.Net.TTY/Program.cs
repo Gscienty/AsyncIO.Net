@@ -23,7 +23,7 @@ namespace AsyncIO.Net.TTY
                 null
             );
 
-            Console.WriteLine(tty.Readable);
+            Console.WriteLine(tty.WindowSize);
             BufferPin pin = null;
             tty.ReadStart(length =>
             {
