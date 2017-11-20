@@ -11,7 +11,6 @@ namespace AsyncIO.Net.Libuv.Requests
         [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
         internal delegate void uv_write_cb(IntPtr req, int status);
 
-        private IntPtr _buffersPointer;
         private static readonly uv_write_cb _writeCallback = (requestPointer, status) => 
         {
             WriteRequest request = Handle.FromIntPtr<WriteRequest>(requestPointer);
@@ -19,12 +18,15 @@ namespace AsyncIO.Net.Libuv.Requests
             request._callback();
         };
 
+        private IntPtr _buffersPointer;
         private List<BufferPin> _writeBuffers;
         private Action _callback;
         public WriteRequest(ILibuvLogger logger, EventLooper looper) : base(logger)
         {
-            int requestorSize = Request.NativeMethods.uv_req_size(RequestType.WRITE);
-            this.AllocateMemory(looper.ThreadId, requestorSize);
+            this.AllocateMemory(
+                looper.ThreadId,
+                Request.NativeMethods.uv_req_size(RequestType.WRITE)
+            );
             this._buffersPointer = IntPtr.Zero;
             this._writeBuffers = new List<BufferPin>();
         }
