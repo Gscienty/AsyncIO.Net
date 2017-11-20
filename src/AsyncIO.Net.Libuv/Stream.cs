@@ -11,6 +11,15 @@ namespace AsyncIO.Net.Libuv
         [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
         internal delegate void uv_read_cb(IntPtr server, int nread, ref Structs.Buffer buf);
 
+        private Action _listener;
+        private GCHandle _listenKeeper;
+        
+        private Func<int, Structs.Buffer> _allocator;
+        private GCHandle _allocKeeper;
+
+        private Action<Structs.Buffer, int> _reader;
+        private GCHandle _readKeeper;
+
         private readonly static uv_connection_cb _connectionCallback = (serverPtr, status) =>
         {
             Stream server = Handle.FromIntPtr<Stream>(serverPtr);
@@ -26,16 +35,6 @@ namespace AsyncIO.Net.Libuv
             Stream server = Handle.FromIntPtr<Stream>(serverPtr);
             server._reader(buffer, size);
         };
-
-        private Action _listener;
-        private GCHandle _listenKeeper;
-        
-        private Func<int, Structs.Buffer> _allocator;
-        private GCHandle _allocKeeper;
-
-        private Action<Structs.Buffer, int> _reader;
-        private GCHandle _readKeeper;
-
         public bool Readable => NativeMethods.uv_is_readable(this) != 0;
 
         public bool Writable => NativeMethods.uv_is_writable(this) != 0;
@@ -88,6 +87,8 @@ namespace AsyncIO.Net.Libuv
                 this._readKeeper = GCHandle.Alloc(this, GCHandleType.Normal);
 
                 NativeMethods.uv_read_start(this, Stream._allocCallback, Stream._readCallback);
+                
+                return this;
             }
             catch
             {
@@ -100,8 +101,6 @@ namespace AsyncIO.Net.Libuv
 
                 throw;
             }
-
-            return this;
         }
 
         public Stream ReadStop()
