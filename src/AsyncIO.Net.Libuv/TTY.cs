@@ -41,6 +41,12 @@ namespace AsyncIO.Net.Libuv
             bool readable,
             Action<Action<IntPtr>, IntPtr> queueCloseHandle)
         {
+            this.AllocateMemory(
+                looper.ThreadId,
+                Handle.NativeMethods.uv_handle_size(HandleType.TTY),
+                queueCloseHandle
+            );
+
             NativeMethods.uv_tty_init(looper, this, (IntPtr)fileDescription, readable ? 1 : 0);
         }
 
