@@ -5,6 +5,20 @@ using AsyncIO.Net.Libuv.Structs;
 
 namespace AsyncIO.Net.Libuv
 {
+    [Flags]
+    public enum UdpFlags : uint
+    {
+        IPv6Only = 1,
+        Partial = 2,
+        ReuseAddress = 4
+    }
+
+    public enum UdpMemberShip : uint
+    {
+        LeaveGroup = 0,
+        JoinGroup
+    }
+
     public class Udp : Handle
     {
         [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
@@ -77,10 +91,10 @@ namespace AsyncIO.Net.Libuv
             NativeMethods.uv_udp_init_ex(looper, this, flags);
         }
 
-        public Udp Bind(string ip, int port)
+        public Udp Bind(string ip, int port, UdpFlags flags)
         {
             NativeSocketAddress address = NativeSocketAddress.GetIPv4(ip, port);
-            NativeMethods.uv_udp_bind(this, ref address, 0);
+            NativeMethods.uv_udp_bind(this, ref address, flags);
             return this;
         }
 
@@ -129,6 +143,50 @@ namespace AsyncIO.Net.Libuv
             return this;
         }
 
+        public Udp SetMemberShip(
+            string multicastAddress,
+            string interfaceAddress,
+            UdpMemberShip memberShip)
+        {
+            NativeMethods.uv_udp_set_membership(
+                this,
+                multicastAddress,
+                interfaceAddress,
+                memberShip
+            );
+            return this;
+        }
+
+        public Udp SetMulticastLoop(bool on)
+        {
+            NativeMethods.uv_udp_set_multicast_loop(this, on ? 1 : 0);
+            return this;
+        }
+
+        public Udp SetMulticastTTL(int ttl)
+        {
+            NativeMethods.uv_udp_set_multicast_ttl(this, ttl);
+            return this;
+        }
+
+        public Udp SetMulticastInterface(string interfaceAddress)
+        {
+            NativeMethods.uv_udp_set_multicast_interface(this, interfaceAddress);
+            return this;
+        }
+
+        public Udp SetBroadcast(bool on)
+        {
+            NativeMethods.uv_udp_set_broadcast(this, on ? 1 : 0);
+            return this;
+        }
+
+        public Udp SetTTL(int ttl)
+        {
+            NativeMethods.uv_udp_set_ttl(this, ttl);
+            return this;
+        }
+
         internal static new class NativeMethods
         {
             [DllImport("libuv", CallingConvention = CallingConvention.Cdecl)]
@@ -136,13 +194,25 @@ namespace AsyncIO.Net.Libuv
             [DllImport("libuv", CallingConvention = CallingConvention.Cdecl)]
             internal static extern int uv_udp_init_ex(EventLooper looper, Udp handle, uint flags);
             [DllImport("libuv", CallingConvention = CallingConvention.Cdecl)]
-            internal static extern int uv_udp_bind(Udp handle, ref NativeSocketAddress address, uint flags);
+            internal static extern int uv_udp_bind(Udp handle, ref NativeSocketAddress address, UdpFlags flags);
             [DllImport("libuv", CallingConvention = CallingConvention.Cdecl)]
             internal static extern int uv_udp_getsockname(Udp handle, out NativeSocketAddress address, ref int length);
             [DllImport("libuv", CallingConvention = CallingConvention.Cdecl)]
             unsafe internal static extern int uv_udp_recv_start(Udp handle, uv_alloc_cb allocCallback, uv_udp_recv_cb recvCallback);
             [DllImport("libuv", CallingConvention = CallingConvention.Cdecl)]
             internal static extern int uv_udp_recv_stop(Udp handle);
+            [DllImport("libuv", CallingConvention = CallingConvention.Cdecl)]
+            internal static extern int uv_udp_set_membership(Udp handle, string multicastAddress, string interfaceAddress, UdpMemberShip memberShip);
+            [DllImport("libuv", CallingConvention = CallingConvention.Cdecl)]
+            internal static extern int uv_udp_set_multicast_loop(Udp handle, int on);
+            [DllImport("libuv", CallingConvention = CallingConvention.Cdecl)]
+            internal static extern int uv_udp_set_multicast_ttl(Udp handle, int ttl);
+            [DllImport("libuv", CallingConvention = CallingConvention.Cdecl)]
+            internal static extern int uv_udp_set_multicast_interface(Udp handle, string interfaceAddress);
+            [DllImport("libuv", CallingConvention = CallingConvention.Cdecl)]
+            internal static extern int uv_udp_set_broadcast(Udp handle, int on);
+            [DllImport("libuv", CallingConvention = CallingConvention.Cdecl)]
+            internal static extern int uv_udp_set_ttl(Udp handle, int ttl);
         }
     }
 }
